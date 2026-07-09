@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบันทึกข้อมูลหนังสือ (Libbook)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            padding: 20px;
+            background-color: #f1f5f9;
+            color: #334155;
+        }
+
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .student-info {
+            background-color: #e0f2fe;
+            color: #0369a1;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border-left: 5px solid #0284c7;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .form-group {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        input,
+        select {
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #0284c7;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #0369a1;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 25px;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background-color: #f8fafc;
+            color: #64748b;
+        }
+
+        .btn-delete {
+            background-color: #ef4444;
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        .btn-delete:hover {
+            background-color: #dc2626;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="student-info">
+            👤 ผู้จัดทำ: แทนคุณ ลีเบาะ | 🆔 รหัสนักศึกษา: 68319010040 | 🏫 ชั้น: ปวส 2 / 1
+        </div>
+
+        <h2>📚 ระบบจัดการข้อมูลหนังสือ (Libbook Midterm)</h2>
+        <hr style="border: 0; height: 1px; background: #e2e8f0; margin-bottom: 20px;">
+
+        <form id="bookForm">
+            <div class="form-group">
+                <input type="text" id="isbn" placeholder="รหัสหนังสือ (ISBN)" required>
+                <input type="text" id="title" placeholder="ชื่อหนังสือ (Title)" required>
+                <input type="text" id="author" placeholder="ชื่อผู้แต่ง (Author)" required>
+                <input type="text" id="category" placeholder="หมวดหมู่ (Category)" required>
+                <input type="number" id="year" placeholder="ปีที่พิมพ์ (Year)" required>
+                <select id="status" required>
+                    <option value="พร้อมใช้งาน">พร้อมใช้งาน (Available)</option>
+                    <option value="ถูกยืม">ถูกยืม (Borrowed)</option>
+                </select>
+            </div>
+            <button type="submit">➕ บันทึกเพิ่มข้อมูลหนังสือ</button>
+        </form>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ISBN</th>
+                    <th>ชื่อหนังสือ</th>
+                    <th>ผู้แต่ง</th>
+                    <th>หมวดหมู่</th>
+                    <th>ปี</th>
+                    <th>สถานะ</th>
+                    <th>จัดการ</th>
+                </tr>
+            </thead>
+            <tbody id="bookTableBody">
+                <tr>
+                    <td colspan="7" style="text-align: center; color: #94a3b8;">กำลังโหลดข้อมูลจากฐานข้อมูล...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api/books';
+
+        // ฟังก์ชันดึงข้อมูลมาแสดงในตาราง (Read)
+        function fetchBooks() {
+            fetch(API_URL)
+                .then(res => {
+                    if (!res.ok) throw new Error();
+                    return res.json();
+                })
+                .then(books => {
+                    const tbody = document.getElementById('bookTableBody');
+                    tbody.innerHTML = '';
+
+                    if (books.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #94a3b8;">ยังไม่มีข้อมูลหนังสือในระบบ</td></tr>`;
+                        return;
+                    }
+
+                    books.forEach(book => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${book.isbn}</td>
+                                <td><strong>${book.title}</strong></td>
+                                <td>${book.author}</td>
+                                <td>${book.category}</td>
+                                <td>${book.year}</td>
+                                <td><span style="color: ${book.status === 'พร้อมใช้งาน' ? 'green' : 'orange'}">${book.status}</span></td>
+                                <td><button class="btn-delete" onclick="deleteBook(${book.id})">ลบ</button></td>
+                            </tr>
+                        `;
+                    });
+                })
+                .catch(() => {
+                    document.getElementById('bookTableBody').innerHTML = `
+                        <tr><td colspan="7" style="text-align: center; color: #ef4444; font-weight: bold;">
+                            ❌ ไม่สามารถเชื่อมต่อ Backend ได้ (กรุณารีสตาร์ท Docker คอมมานด์อีกครั้ง)
+                        </td></tr>`;
+                });
+        }
+
+        // ฟังก์ชันบันทึกข้อมูลเพิ่มเข้าไป (Create)
+        document.getElementById('bookForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const data = {
+                isbn: document.getElementById('isbn').value,
+                title: document.getElementById('title').value,
+                author: document.getElementById('author').value,
+                category: document.getElementById('category').value,
+                year: parseInt(document.getElementById('year').value),
+                status: document.getElementById('status').value
+            };
+
+            fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }).then(() => {
+                document.getElementById('bookForm').reset();
+                fetchBooks(); // โหลดตารางใหม่
+            });
+        });
+
+        // ฟังก์ชันลบข้อมูล (Delete)
+        function deleteBook(id) {
+            if (confirm('คุณแน่ใจใช่ไหมที่จะลบหนังสือเล่มนี้?')) {
+                fetch(`${API_URL}/${id}`, { method: 'DELETE' })
+                    .then(() => fetchBooks());
+            }
+        }
+
+        // เรียกทำงานทันทีที่เปิดหน้าเว็บ
+        fetchBooks();
+    </script>
+</body>
+
+</html>

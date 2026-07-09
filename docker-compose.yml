@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # 1. บริการฐานข้อมูล (Database)
+  db:
+    image: postgres:16-alpine
+    container_name: libbook-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: my_secret_password_1234
+      POSTGRES_DB: libbook
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # 2. บริการหลังบ้าน (Backend API)
+  backend:
+    build: ./backend
+    container_name: libbook-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_USER=postgres
+      - DB_HOST=db # วิ่งไปหาฐานข้อมูลจากชื่อ service 'db'
+      - DB_PASSWORD=my_secret_password_1234
+      - DB_NAME=libbook
+      - DB_PORT=5432
+    depends_on:
+      - db
+
+  # 3. บริการหน้าบ้าน (Frontend Web)
+  frontend:
+    build: ./frontend
+    container_name: libbook-frontend
+    ports:
+      - "8080:80" # แผนที่พอร์ตให้เราเข้าผ่าน 8080 ได้
+    depends_on:
+      - backend
+
+# การตั้งค่าพื้นที่เก็บข้อมูลไม่ให้หายเมื่อปิดคอม
+volumes:
+  postgres_data:
